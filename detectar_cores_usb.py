@@ -1,13 +1,16 @@
 """Deteccao inicial de azul, verde e vermelho com webcam USB.
 
-Compativel com a sintaxe do Python 3.5 do Raspbian Stretch. Nao aciona servos.
+Compativel com o Python 3.5 do Raspbian Stretch. Nao aciona servos.
 """
 
 import colorsys
-import time
+import os
+import tempfile
 from collections import Counter
 
-import cv2
+from PIL import Image
+
+from camera_teste_usb import capturar_foto
 
 
 PASSO_AMOSTRA = 8
@@ -17,7 +20,7 @@ FRACAO_MINIMA = 0.10
 QUADROS_ESTAVEIS = 3
 
 
-def classificar_pixel(b, g, r):
+def classificar_pixel(r, g, b):
     matiz, saturacao, brilho = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
     if saturacao < SATURACAO_MINIMA or brilho < BRILHO_MINIMO:
         return None
@@ -31,14 +34,14 @@ def classificar_pixel(b, g, r):
     return None
 
 
-def detectar_cor(quadro):
-    altura, largura = quadro.shape[:2]
+def detectar_cor(imagem):
+    largura, altura = imagem.size
+    pixels = imagem.load()
     contagem = Counter()
     total = 0
     for y in range(altura // 4, 3 * altura // 4, PASSO_AMOSTRA):
         for x in range(largura // 4, 3 * largura // 4, PASSO_AMOSTRA):
-            b, g, r = (int(valor) for valor in quadro[y, x, :3])
-            cor = classificar_pixel(b, g, r)
+            cor = classificar_pixel(*pixels[x, y])
             if cor:
                 contagem[cor] += 1
             total += 1
@@ -49,35 +52,29 @@ def detectar_cor(quadro):
 
 
 def main():
-    camera = cv2.VideoCapture(0)
-    if not camera.isOpened():
-        raise RuntimeError('Nao foi possivel abrir /dev/video0. Confira a webcam USB.')
+    ultima_amostra = None
+    repeticoes = 0
+    armado = True
+    print('Detectando azul, verde e vermelho. Ctrl+C para encerrar.')
     try:
-        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
-        ultima_amostra = None
-        repeticoes = 0
-        armado = True
-        print('Detectando azul, verde e vermelho. Ctrl+C para encerrar.')
-        while True:
-            ok, quadro = camera.read()
-            if not ok:
-                raise RuntimeError('A camera parou de fornecer imagens.')
-            cor, proporcoes = detectar_cor(quadro)
-            repeticoes = repeticoes + 1 if cor == ultima_amostra else 1
-            ultima_amostra = cor
-            if repeticoes >= QUADROS_ESTAVEIS:
-                if cor is None:
-                    armado = True
-                elif armado:
-                    print('Item: {} | cobertura: {:.0%}'.format(
-                        cor, proporcoes[cor]), flush=True)
-                    armado = False
-            time.sleep(0.1)
+        with tempfile.TemporaryDirectory(prefix='esteira-') as pasta:
+            caminho = os.path.join(pasta, 'quadro.jpg')
+            while True:
+                capturar_foto(caminho, '320x240')
+                with Image.open(caminho) as foto:
+                    imagem = foto.convert('RGB')
+                cor, proporcoes = detectar_cor(imagem)
+                repeticoes = repeticoes + 1 if cor == ultima_amostra else 1
+                ultima_amostra = cor
+                if repeticoes >= QUADROS_ESTAVEIS:
+                    if cor is None:
+                        armado = True
+                    elif armado:
+                        print('Item: {} | cobertura: {:.0%}'.format(
+                            cor, proporcoes[cor]), flush=True)
+                        armado = False
     except KeyboardInterrupt:
         print('\nEncerrado.')
-    finally:
-        camera.release()
 
 
 if __name__ == '__main__':
