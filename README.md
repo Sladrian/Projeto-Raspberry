@@ -7,14 +7,16 @@ armhf. Durante o primeiro teste, será usada uma webcam USB. **Use os arquivos
 com `_usb` no nome.** Os scripts sem esse sufixo usam a câmera CSI e Picamera2,
 que exige Raspberry Pi OS Bullseye ou mais recente.
 
-Primeiro verifique se a webcam aparece e se o OpenCV já está instalado:
+Primeiro verifique se a webcam aparece e instale `fswebcam` se faltar. O
+`python3-pil` já vem instalado no Raspberry de teste. Estes scripts USB usam
+`fswebcam` para tirar fotos e Pillow para ler as cores, sem OpenCV:
 
 ```bash
 ls /dev/video*
-python3 -c 'import cv2; print(cv2.__version__)'
+sudo apt-get install fswebcam
 ```
 
-Se aparecer `/dev/video0` e o import funcionar, rode um teste que não aciona motores:
+Se aparecer `/dev/video0`, rode um teste que não aciona motores:
 
 ```bash
 python3 camera_teste_usb.py
@@ -26,9 +28,10 @@ Confira a foto `camera_teste.jpg`. Só depois teste a detecção:
 python3 detectar_cores_usb.py
 ```
 
-Se a webcam estiver em `/dev/video1`, troque `cv2.VideoCapture(0)` por
-`cv2.VideoCapture(1)` nos dois scripts. Se o import de `cv2` falhar ou a câmera
-não capturar, anote o erro exato antes de instalar ou mudar qualquer pacote.
+Se a webcam estiver em `/dev/video1`, troque `DISPOSITIVO` para `/dev/video1`
+em `camera_teste_usb.py`. Se a câmera não capturar, anote o erro exato.
+Cada amostra chama `fswebcam` para tirar uma foto, então este protótipo não
+serve ainda para medir o tempo da esteira ou acionar os servos em tempo real.
 
 ## Se você usa Raspberry Pi OS Bullseye ou mais recente
 
