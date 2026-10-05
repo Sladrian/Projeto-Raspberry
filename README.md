@@ -1,5 +1,37 @@
 # Esteira separadora por cores — primeira etapa
 
+## Se você usa Raspbian 9 (Stretch) e webcam USB
+
+O Raspberry Pi 3 deste projeto está com Raspbian 9 (Stretch), arquitetura
+armhf. Durante o primeiro teste, será usada uma webcam USB. **Use os arquivos
+com `_usb` no nome.** Os scripts sem esse sufixo usam a câmera CSI e Picamera2,
+que exige Raspberry Pi OS Bullseye ou mais recente.
+
+Primeiro verifique se a webcam aparece e se o OpenCV já está instalado:
+
+```bash
+ls /dev/video*
+python3 -c 'import cv2; print(cv2.__version__)'
+```
+
+Se aparecer `/dev/video0` e o import funcionar, rode um teste que não aciona motores:
+
+```bash
+python3 camera_teste_usb.py
+```
+
+Confira a foto `camera_teste.jpg`. Só depois teste a detecção:
+
+```bash
+python3 detectar_cores_usb.py
+```
+
+Se a webcam estiver em `/dev/video1`, troque `cv2.VideoCapture(0)` por
+`cv2.VideoCapture(1)` nos dois scripts. Se o import de `cv2` falhar ou a câmera
+não capturar, anote o erro exato antes de instalar ou mudar qualquer pacote.
+
+## Se você usa Raspberry Pi OS Bullseye ou mais recente
+
 Protótipo para **Raspberry Pi 3 com câmera CSI**. Primeiro testa a câmera e
 depois reconhece peças azuis, verdes e vermelhas. **Ainda não aciona servos**:
 o destino de cada cor, os pinos e o tempo entre câmera e desvio precisam ser
