@@ -28,6 +28,11 @@ Confira a foto `camera_teste.jpg`. Só depois teste a detecção:
 python3 detectar_cores_usb.py
 ```
 
+O terminal mostra a porcentagem das três cores em cada captura. Uma cor com
+pelo menos 10% na região central e três capturas consecutivas gera `Item: cor`.
+Se não detectar, pare com Ctrl+C, abra `camera_ultima.jpg` e confira se a peça
+aparece grande e bem iluminada no centro da foto.
+
 Se a webcam estiver em `/dev/video1`, troque `DISPOSITIVO` para `/dev/video1`
 em `camera_teste_usb.py`. Se a câmera não capturar, anote o erro exato.
 Cada amostra chama `fswebcam` para tirar uma foto, então este protótipo não
