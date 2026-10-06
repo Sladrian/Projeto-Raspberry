@@ -1,11 +1,9 @@
 """Deteccao inicial de azul, verde e vermelho com webcam USB.
 
-Compativel com o Python 3.5 do Raspbian Stretch. Nao aciona servos.
+Compativel com a sintaxe do Python 3.5 do Raspbian Stretch. Nao aciona servos.
 """
 
 import colorsys
-import os
-import tempfile
 from collections import Counter
 
 from PIL import Image
@@ -18,6 +16,7 @@ SATURACAO_MINIMA = 0.35
 BRILHO_MINIMO = 0.20
 FRACAO_MINIMA = 0.10
 QUADROS_ESTAVEIS = 3
+FOTO_ATUAL = 'camera_ultima.jpg'
 
 
 def classificar_pixel(r, g, b):
@@ -55,24 +54,30 @@ def main():
     ultima_amostra = None
     repeticoes = 0
     armado = True
-    print('Detectando azul, verde e vermelho. Ctrl+C para encerrar.')
+    print('Detectando azul, verde e vermelho. Ctrl+C para encerrar.', flush=True)
+    print('Cada captura atualiza {} para conferir o enquadramento.'.format(
+        FOTO_ATUAL), flush=True)
     try:
-        with tempfile.TemporaryDirectory(prefix='esteira-') as pasta:
-            caminho = os.path.join(pasta, 'quadro.jpg')
-            while True:
-                capturar_foto(caminho, '320x240')
-                with Image.open(caminho) as foto:
-                    imagem = foto.convert('RGB')
-                cor, proporcoes = detectar_cor(imagem)
-                repeticoes = repeticoes + 1 if cor == ultima_amostra else 1
-                ultima_amostra = cor
-                if repeticoes >= QUADROS_ESTAVEIS:
-                    if cor is None:
-                        armado = True
-                    elif armado:
-                        print('Item: {} | cobertura: {:.0%}'.format(
-                            cor, proporcoes[cor]), flush=True)
-                        armado = False
+        while True:
+            capturar_foto(FOTO_ATUAL, '320x240', silencioso=True)
+            with Image.open(FOTO_ATUAL) as foto:
+                imagem = foto.convert('RGB')
+            cor, proporcoes = detectar_cor(imagem)
+            repeticoes = repeticoes + 1 if cor == ultima_amostra else 1
+            ultima_amostra = cor
+            print('Amostra: vermelho {:.0%} | verde {:.0%} | azul {:.0%} | '
+                  'candidato: {} ({}/{})'.format(
+                      proporcoes['vermelho'], proporcoes['verde'],
+                      proporcoes['azul'], cor or 'nenhum',
+                      min(repeticoes, QUADROS_ESTAVEIS), QUADROS_ESTAVEIS),
+                  flush=True)
+            if repeticoes >= QUADROS_ESTAVEIS:
+                if cor is None:
+                    armado = True
+                elif armado:
+                    print('Item: {} | cobertura: {:.0%}'.format(
+                        cor, proporcoes[cor]), flush=True)
+                    armado = False
     except KeyboardInterrupt:
         print('\nEncerrado.')
 
